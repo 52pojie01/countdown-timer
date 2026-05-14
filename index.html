@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>倒计时器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#0f172a,#1e1b4b);color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+h1{font-size:1.8rem;margin-bottom:2rem;color:#a78bfa}
+.timer-display{display:flex;gap:1rem;margin-bottom:2rem}
+.time-box{background:rgba(255,255,255,.1);backdrop-filter:blur(10px);border-radius:12px;padding:1.5rem 2rem;text-align:center;min-width:100px}
+.time-box .num{font-size:3rem;font-weight:700;font-variant-numeric:tabular-nums;color:#38bdf8}
+.time-box .label{font-size:.8rem;color:#94a3b8;margin-top:.25rem}
+.controls{display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center}
+.btn{padding:.7rem 1.5rem;border:none;border-radius:8px;cursor:pointer;font-size:1rem;font-weight:600;transition:all .2s}
+.btn-start{background:#22c55e;color:#fff}.btn-start:hover{background:#16a34a}
+.btn-pause{background:#f59e0b;color:#fff}.btn-pause:hover{background:#d97706}
+.btn-reset{background:#ef4444;color:#fff}.btn-reset:hover{background:#dc2626}
+.preset{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-bottom:1rem}
+.preset button{padding:.4rem 1rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:20px;cursor:pointer;font-size:.85rem;transition:all .2s}
+.preset button:hover{background:rgba(255,255,255,.2)}
+.custom{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}
+.custom input{width:60px;padding:.4rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;text-align:center;font-size:.9rem}
+.progress-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:-1}
+.done{animation:flash 0.5s infinite alternate}
+@keyframes flash{from{opacity:1}to{opacity:.5}}
+</style>
+</head>
+<body>
+<h1>⏳ 倒计时器</h1>
+<div class="preset">
+  <button onclick="setTime(60)">1分钟</button>
+  <button onclick="setTime(300)">5分钟</button>
+  <button onclick="setTime(600)">10分钟</button>
+  <button onclick="setTime(900)">15分钟</button>
+  <button onclick="setTime(1800)">30分钟</button>
+  <button onclick="setTime(3600)">1小时</button>
+</div>
+<div class="custom">
+  <input type="number" id="cmin" placeholder="分" min="0" max="999">
+  <span>:</span>
+  <input type="number" id="csec" placeholder="秒" min="0" max="59">
+  <button class="btn btn-start" onclick="setCustom()" style="padding:.4rem 1rem;font-size:.85rem">设置</button>
+</div>
+<div class="timer-display">
+  <div class="time-box"><div class="num" id="hours">00</div><div class="label">时</div></div>
+  <div class="time-box"><div class="num" id="mins">00</div><div class="label">分</div></div>
+  <div class="time-box"><div class="num" id="secs">00</div><div class="label">秒</div></div>
+</div>
+<div class="controls">
+  <button class="btn btn-start" id="startBtn" onclick="startTimer()">开始</button>
+  <button class="btn btn-pause" onclick="pauseTimer()">暂停</button>
+  <button class="btn btn-reset" onclick="resetTimer()">重置</button>
+</div>
+<audio id="alarm" preload="auto"><source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2Onp+fnpuXlZGPjYuJiIaEgoB+fHp4dnRycG9ta2poZmVjYWBfXl1cW1pZWFdWVVRTUlFQT05NTExLS0pKSUlISEdHRkZFRUREQ0NCQkFBQEA/Pz4+PT09PDw7Ozs6Ojo5OTk4ODg3Nzc2NjY1NTU0NDQzMzMyMjIxMTExMDAwLy8vLi4uLS0tLCwsKysrKioqKSkpKCgoJycnJiYmJSUlJCQkIyMjIiIiISEhICAgHx8fHh4eHR0dHBwcGxsbGhoaGRkZGBgYFxcXFhYWFRUVFBQUExMTEhISEREREBAQDw8PDg4ODQ0NDAwMCwsLCgoKCQkJCAgIBwcHBgYGBQUFBAQEAwMDAgICAQEBAQEBAgICAgICAwMDAwQEBQUFBQYGBgcHBwgICQkJCgoLCwwMDQ4PEBESEhMUFRYXGBkaGxwdHh8gISIjJA==" type="audio/wav"></audio>
+<script>
+let total=0,remaining=0,timer=null,running=false;
+const h=document.getElementById('hours'),m=document.getElementById('mins'),s=document.getElementById('secs');
+function updateDisplay(){const t=Math.max(0,remaining);h.textContent=String(Math.floor(t/3600)).padStart(2,'0');m.textContent=String(Math.floor((t%3600)/60)).padStart(2,'0');s.textContent=String(t%60).padStart(2,'0')}
+function setTime(sec){pauseTimer();total=remaining=sec;updateDisplay()}
+function setCustom(){const mn=parseInt(document.getElementById('cmin').value)||0;const sc=parseInt(document.getElementById('csec').value)||0;setTime(mn*60+sc)}
+function startTimer(){if(running||remaining<=0)return;running=true;timer=setInterval(()=>{remaining--;updateDisplay();if(remaining<=0){clearInterval(timer);running=false;document.body.classList.add('done');try{document.getElementById('alarm').play()}catch(e){}}},1000)}
+function pauseTimer(){clearInterval(timer);running=false}
+function resetTimer(){pauseTimer();remaining=total;updateDisplay();document.body.classList.remove('done')}
+updateDisplay();
+</script>
+</body>
+</html>
